@@ -1,0 +1,28 @@
+# ============================================
+# FPGA 工程（Vivado / Vitis / SymbiFlow）
+# ============================================
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# Vivado
+*.jou
+*.log
+*.wdb
+*.runs/
+*.cache/
+*.hw/
+*.sim/
+*.ip_user_files/
+*.gen/
+
+# Vitis / HLS
+.hw_platform/
+*.bit
+*.bin
+
+# 编译产物
+*.o
+*.elf
+*.vvp
