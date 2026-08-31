@@ -12,13 +12,21 @@ module fe_top (
     output wire [3:0] led            // [0]=命令处理中 [1]=收发活动 [2]=心跳 [3]=保留
 );
     // 复位同步（高有效，两拍）
-    reg [1:0] rst_sync;
-    always @(posedge clk100) rst_sync <= {rst_sync[0], btn_rst};
+    (* ASYNC_REG = "TRUE" *) reg [1:0] rst_sync = 2'b11;
+    // Asynchronously assert reset, then synchronously release it.  This also
+    // gives simulation and hardware a defined power-up reset state.
+    always @(posedge clk100 or posedge btn_rst) begin
+        if (btn_rst) rst_sync <= 2'b11;
+        else         rst_sync <= {rst_sync[0], 1'b0};
+    end
     wire rst = rst_sync[1];
 
     // 心跳
     reg [23:0] hb;
-    always @(posedge clk100) hb <= hb + 1;
+    always @(posedge clk100) begin
+        if (rst) hb <= 24'b0;
+        else     hb <= hb + 1'b1;
+    end
 
     // Atom ↔ 模块总线
     wire [255:0] atom_act;

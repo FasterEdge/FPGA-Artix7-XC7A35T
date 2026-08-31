@@ -138,6 +138,7 @@ module fe_ability_modbus #(
     // LSB-first → 右对齐段
     reg [1023:0] rrev;
     always @* begin
+        rrev = 0;
         for (i = 0; i < 128; i = i + 1)
             if (i < rlen) rrev[(rlen-1-i)*8 +: 8] = rbuf[i*8 +: 8];
     end
@@ -223,7 +224,7 @@ module fe_ability_modbus #(
                         end else begin
                             holding[pa[5:0]] <= pv[15:0];
                             resp_ok <= 1'b1;
-                            s0 <= "{\"written\":true}"; l0 <= 17; ns <= 2'd1;
+                            s0 <= "{\"written\":true}"; l0 <= 16; ns <= 2'd1;
                         end
                     end else if (is_wcoil) begin
                         if (pa >= 64) begin
@@ -232,7 +233,7 @@ module fe_ability_modbus #(
                         end else begin
                             coils[pa[5:0]] <= (pv != 0);
                             resp_ok <= 1'b1;
-                            s0 <= "{\"written\":true}"; l0 <= 17; ns <= 2'd1;
+                            s0 <= "{\"written\":true}"; l0 <= 16; ns <= 2'd1;
                         end
                     end else begin
                         resp_ok <= 1'b0;
@@ -265,7 +266,9 @@ module fe_ability_modbus #(
         .clk(clk), .rst(rst), .start(mb_txs), .data(mb_txd), .tx(mb_tx), .busy(mb_txb)
     );
 
-    localparam integer T35 = (CLK_FREQ / BAUD) * 4;   // ≈3.5 字符（11 位/字符）
+    // Modbus RTU requires at least 3.5 character times of silence.  With 8N1
+    // one character is 10 bits, so use 35 bit periods (not four bit periods).
+    localparam integer T35 = (CLK_FREQ / BAUD) * 35;
 
     localparam M_IDLE = 0, M_RX = 1, M_CHK = 2, M_EXEC = 3, M_EXECW = 4,
                M_CRC = 5, M_CRC2 = 6, M_TX = 7, M_TXW = 8;
@@ -273,7 +276,7 @@ module fe_ability_modbus #(
 
     reg [63:0]  fbuf;          // 请求帧（LSB-first，≤8 字节）
     reg [3:0]   fidx;
-    reg [15:0]  gapcnt;
+    reg [21:0]  gapcnt;
     reg [1023:0] respf;        // 响应帧（LSB-first）
     reg [7:0]   rflen;
     reg [7:0]   rfi;
@@ -316,8 +319,14 @@ module fe_ability_modbus #(
                 end
                 M_RX: begin
                     if (mb_rxv) begin
-                        if (fidx < 8) fbuf[fidx*8 +: 8] <= mb_rxd;
-                        fidx   <= fidx + 1;
+                        if (fidx < 8) begin
+                            fbuf[fidx*8 +: 8] <= mb_rxd;
+                            fidx <= fidx + 1;
+                        end else begin
+                            // 固定长度请求超过 8B 即丢弃。不要继续递增 4 位
+                            // fidx，否则 16B 后会回绕成 8 并误验旧缓冲内容。
+                            fidx <= 4'd9;
+                        end
                         gapcnt <= 0;
                     end else begin
                         // 用原始 RX 线测空闲：低电平=有活动立即清零，
@@ -326,7 +335,7 @@ module fe_ability_modbus #(
                         if (!mb_rx) gapcnt <= 0;
                         else begin
                             gapcnt <= gapcnt + 1;
-                            if (gapcnt >= T35[15:0]) mstate <= M_CHK;
+                            if (gapcnt >= T35 - 1) mstate <= M_CHK;
                         end
                     end
                 end
@@ -374,8 +383,12 @@ module fe_ability_modbus #(
                             end
                         end
                         8'h05: begin
-                            // 写单线圈：0xFF00=ON
-                            if (rv == 16'hFF00 || rv == 16'h0000) begin
+                            // 写单线圈：地址必须在寄存器映射内，0xFF00=ON。
+                            if (ra >= 64) begin
+                                respf[1*8 +: 8] <= 8'h85;
+                                respf[2*8 +: 8] <= 8'h02; // illegal data address
+                                rflen <= 3;
+                            end else if (rv == 16'hFF00 || rv == 16'h0000) begin
                                 coils[ra[5:0]] <= (rv == 16'hFF00);
                                 respf[2*8 +: 8] <= fbuf[2*8 +: 8];
                                 respf[3*8 +: 8] <= fbuf[3*8 +: 8];
@@ -390,13 +403,19 @@ module fe_ability_modbus #(
                             mstate <= M_CRC;
                         end
                         8'h06: begin
-                            // 写单保持寄存器
-                            holding[ra[5:0]] <= rv;
-                            respf[2*8 +: 8] <= fbuf[2*8 +: 8];
-                            respf[3*8 +: 8] <= fbuf[3*8 +: 8];
-                            respf[4*8 +: 8] <= fbuf[4*8 +: 8];
-                            respf[5*8 +: 8] <= fbuf[5*8 +: 8];
-                            rflen <= 6;
+                            // 写单保持寄存器；禁止高地址被 ra[5:0] 静默回绕。
+                            if (ra >= 64) begin
+                                respf[1*8 +: 8] <= 8'h86;
+                                respf[2*8 +: 8] <= 8'h02; // illegal data address
+                                rflen <= 3;
+                            end else begin
+                                holding[ra[5:0]] <= rv;
+                                respf[2*8 +: 8] <= fbuf[2*8 +: 8];
+                                respf[3*8 +: 8] <= fbuf[3*8 +: 8];
+                                respf[4*8 +: 8] <= fbuf[4*8 +: 8];
+                                respf[5*8 +: 8] <= fbuf[5*8 +: 8];
+                                rflen <= 6;
+                            end
                             mstate <= M_CRC;
                         end
                         default: mstate <= M_IDLE;

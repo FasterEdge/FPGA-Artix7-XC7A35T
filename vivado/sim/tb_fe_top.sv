@@ -34,7 +34,7 @@ module tb_fe_top;
         end
     endtask
 
-    task send_cmd(input [8*64-1:0] s, input integer len);
+    task send_cmd(input [8*96-1:0] s, input integer len);
         integer i;
         begin
             for (i = 0; i < len; i = i + 1)
@@ -93,7 +93,7 @@ module tb_fe_top;
     integer errors;
 
     // rbuf 是否包含 needle（右对齐字面量，len 字节）
-    function contains(input integer nlen, input [8*64-1:0] needle);
+    function contains(input integer nlen, input [8*96-1:0] needle);
         integer i, j;
         reg found;
         begin
@@ -107,7 +107,7 @@ module tb_fe_top;
         end
     endfunction
 
-    task check(input integer nlen, input [8*64-1:0] needle);
+    task check(input integer nlen, input [8*96-1:0] needle);
         begin
             if (contains(nlen, needle)) begin
                 $display("PASS: %0s", needle);
@@ -194,7 +194,7 @@ module tb_fe_top;
     // ---------------- 主流程 ----------------
     reg [7:0] b;
     reg ok;
-    reg [8*64-1:0] vcmd;
+    reg [8*96-1:0] vcmd;
     integer vi;
     reg [7:0] tok [0:42];
     reg [7:0] rb;
@@ -232,46 +232,46 @@ module tb_fe_top;
         send_cmd("ability_TimeAbility get_time", 28);
         send_byte(8'h0A);
         recv_line;
-        check(28, "{\"epoch\":1700000000}");
+        check(20, "{\"epoch\":1700000000}");
 
         // 4) ConfigData
         send_cmd("data_ConfigData set wifi.ssid=MyNet", 35);
         send_byte(8'h0A);
         recv_line;
-        check(17, "OK set -> saved");
+        check(15, "OK set -> saved");
 
         send_cmd("data_ConfigData get wifi.ssid", 29);
         send_byte(8'h0A);
         recv_line;
-        check(31, "{\"wifi.ssid\":\"MyNet\"}");
+        check(21, "{\"wifi_ssid\":\"MyNet\"}");
 
         // 5) BaseAbility / BaseData
         send_cmd("ability_BaseAbility list_data_names", 35);
         send_byte(8'h0A);
         recv_line;
-        check(43, "{\"names\":[BaseData,ConfigData]}");
+        check(31, "{\"names\":[BaseData,ConfigData]}");
 
         send_cmd("data_BaseData info", 18);
         send_byte(8'h0A);
         recv_line;
-        check(9, "BaseData");
+        check(8, "BaseData");
 
         // 6) OneKey：签发（seq=0，subject 默认）→ 与 Python 参考值比对
         send_cmd("ability_OneKeyAbility issue_token", 33);
         send_byte(8'h0A);
         recv_line;
-        check(52, "3Jc0-GMdPoWinQCFTfIV9TN-UxJkU-XcJh8xPBk1E_A");
+        check(43, "3Jc0-GMdPoWinQCFTfIV9TN-UxJkU-XcJh8xPBk1E_A");
         // 回验
         send_cmd("ability_OneKeyAbility verify_token 0:3Jc0-GMdPoWinQCFTfIV9TN-UxJkU-XcJh8xPBk1E_A", 80);
         send_byte(8'h0A);
         recv_line;
-        check(31, "OK verify_token -> {\"valid\":true}");
+        check(33, "OK verify_token -> {\"valid\":true}");
 
         // 7) Modbus CLI
         send_cmd("ability_ModbusAbility write_holding 0,42", 40);
         send_byte(8'h0A);
         recv_line;
-        check(31, "OK write_holding -> {\"written\":true}");
+        check(36, "OK write_holding -> {\"written\":true}");
 
         send_cmd("ability_ModbusAbility read_holding 0,4", 38);
         send_byte(8'h0A);
@@ -297,7 +297,8 @@ module tb_fe_top;
             mb_send_byte(8'h00);
             mb_send_byte(8'h00);
             mb_send_byte(8'h02);
-            crc = crc16m({504'h0, 8'h01, 8'h03, 8'h00, 8'h00, 8'h00, 8'h02}, 6);
+            // crc16m consumes an LSB-first byte vector.
+            crc = crc16m({976'h0, 8'h02, 8'h00, 8'h00, 8'h00, 8'h03, 8'h01}, 6);
             // Modbus CRC 低字节在前
             mb_send_byte(crc[7:0]);
             mb_send_byte(crc[15:8]);

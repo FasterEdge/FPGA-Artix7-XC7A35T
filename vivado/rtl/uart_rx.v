@@ -13,10 +13,19 @@ module uart_rx #(
     localparam integer BIT_PERIOD = CLK_FREQ / BAUD;
 
     reg [1:0] sync;
-    always @(posedge clk) sync <= {sync[0], rx};
+    reg       rx_prev;
+    always @(posedge clk) begin
+        if (rst) begin
+            // UART idles high.  Resetting the synchronizer to idle prevents
+            // X propagation and a false start edge immediately after reset.
+            sync    <= 2'b11;
+            rx_prev <= 1'b1;
+        end else begin
+            sync    <= {sync[0], rx};
+            rx_prev <= sync[1];
+        end
+    end
     wire rx_s = sync[1];
-    reg  rx_prev;
-    always @(posedge clk) rx_prev <= rx_s;
     wire fall = rx_prev & ~rx_s;
 
     reg [15:0] cnt;

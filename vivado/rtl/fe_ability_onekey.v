@@ -331,7 +331,7 @@ module fe_ability_onekey #(
                         for (j = 0; j < 43; j = j + 1)
                             if (tok_l[j] != vt[j]) cmp_ok = 1'b0;
                         if (cmp_ok) begin
-                            s0 <= "{\"valid\":true}"; l0 <= 15; ns <= 2'd1;
+                            s0 <= "{\"valid\":true}"; l0 <= 14; ns <= 2'd1;
                             resp_start <= 1'b1; resp_ok <= 1'b1;
                         end else begin
                             s0 <= "token invalid"; l0 <= 13; ns <= 2'd1;
