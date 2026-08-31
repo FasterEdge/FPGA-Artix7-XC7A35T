@@ -1,3 +1,4 @@
+// FasterEdge 开源项目 · https://github.com/FasterEdge · https://gitee.com/FasterEdge
 `timescale 1ns/1ps
 // fe_data_base.v — BaseData：logo / info
 module fe_data_base(
