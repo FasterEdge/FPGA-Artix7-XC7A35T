@@ -1,3 +1,8 @@
+// ─────────────────────────────────────────────────────────────
+// FasterEdge 开源项目
+// Github: https://github.com/FasterEdge
+// Gitee:  https://gitee.com/FasterEdge
+// ─────────────────────────────────────────────────────────────
 // tb_fe_hmac.v — HMAC-SHA256 核自校验
 // 向量：key = "Jefe"+28×0x00（32B），msg = "The quick brown fox jumps over
 // the lazy dog"（43B）→ 90bfc305...；key = "key"+29×0x00，msg = "Hi There"。

@@ -1,3 +1,8 @@
+// ─────────────────────────────────────────────────────────────
+// FasterEdge 开源项目
+// Github: https://github.com/FasterEdge
+// Gitee:  https://gitee.com/FasterEdge
+// ─────────────────────────────────────────────────────────────
 `timescale 1ns/1ps
 // fe_sha256_block.v — SHA-256 单块压缩核（迭代，64 轮）
 // init_state 为链接变量输入（8×32bit，state[255:224] = 字 A）；

@@ -1,3 +1,8 @@
+// ─────────────────────────────────────────────────────────────
+// FasterEdge 开源项目
+// Github: https://github.com/FasterEdge
+// Gitee:  https://gitee.com/FasterEdge
+// ─────────────────────────────────────────────────────────────
 `timescale 1ns/1ps
 // fe_resp.v — 通用分段响应发送器（valid/ready 字节流）
 // 最多 3 段，每段为"右对齐字符串常量/缓冲 + 长度"（长度须 ≥1）。

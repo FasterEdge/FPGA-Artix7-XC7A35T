@@ -1,3 +1,8 @@
+// ─────────────────────────────────────────────────────────────
+// FasterEdge 开源项目
+// Github: https://github.com/FasterEdge
+// Gitee:  https://gitee.com/FasterEdge
+// ─────────────────────────────────────────────────────────────
 `timescale 1ns/1ps
 // fe_ability_onekey.v — OneKeyAbility（纯 RTL）
 // issue_token / verify_token / revoke_token / revoke_all / list_tokens /

@@ -1,3 +1,8 @@
+// ─────────────────────────────────────────────────────────────
+// FasterEdge 开源项目
+// Github: https://github.com/FasterEdge
+// Gitee:  https://gitee.com/FasterEdge
+// ─────────────────────────────────────────────────────────────
 `timescale 1ns/1ps
 // fe_atom.v — FasterEdge Atom 框架核心（纯 RTL）
 // 串口命令解释器："<data|ability>_<Name> <act> [args]"

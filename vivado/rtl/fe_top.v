@@ -1,3 +1,8 @@
+// ─────────────────────────────────────────────────────────────
+// FasterEdge 开源项目
+// Github: https://github.com/FasterEdge
+// Gitee:  https://gitee.com/FasterEdge
+// ─────────────────────────────────────────────────────────────
 `timescale 1ns/1ps
 // fe_top.v — FasterEdge FPGA 顶层（Basys3 / XC7A35T）
 // 100MHz 时钟直入，UART0 = 命令行控制台（板载 USB-UART），
