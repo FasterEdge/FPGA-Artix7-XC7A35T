@@ -1,3 +1,4 @@
+// FasterEdge 开源项目 - Github: https://github.com/FasterEdge - Gitee: https://gitee.com/FasterEdge
 `timescale 1ns/1ps
 // uart_rx.v — UART 8N1 接收（100MHz 类时钟域，中点采样）
 module uart_rx #(

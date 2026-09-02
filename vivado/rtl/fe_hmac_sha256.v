@@ -1,3 +1,4 @@
+// FasterEdge 开源项目 - Github: https://github.com/FasterEdge - Gitee: https://gitee.com/FasterEdge
 `timescale 1ns/1ps
 // fe_hmac_sha256.v — HMAC-SHA256（硬件版）
 // 流程：ipad 块压缩 → 消息块压缩 → opad 块压缩 → 摘要块压缩，共 4 块。

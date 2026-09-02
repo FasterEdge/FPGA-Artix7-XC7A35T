@@ -1,3 +1,4 @@
+// FasterEdge 开源项目 - Github: https://github.com/FasterEdge - Gitee: https://gitee.com/FasterEdge
 `timescale 1ns/1ps
 // fe_ability_modbus.v — ModbusAbility（纯 RTL）
 // CLI 侧：set_unit_id / get_unit_id / read_holding / read_input /

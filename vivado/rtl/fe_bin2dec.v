@@ -1,3 +1,4 @@
+// FasterEdge 开源项目 - Github: https://github.com/FasterEdge - Gitee: https://gitee.com/FasterEdge
 `timescale 1ns/1ps
 // fe_bin2dec.v — 32 位二进制转十进制 ASCII（10 次除 10 + 反转，两拍流水）
 // digits[7:0] 为最高位数字（便于从高位流式输出），ndigits 为有效位数。

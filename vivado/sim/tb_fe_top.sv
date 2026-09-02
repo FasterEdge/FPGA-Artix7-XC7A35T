@@ -1,3 +1,4 @@
+// FasterEdge 开源项目 - Github: https://github.com/FasterEdge - Gitee: https://gitee.com/FasterEdge
 // tb_fe_top.sv — FasterEdge FPGA 全链路仿真
 // 通过 UART0 电平发送 CLI 命令并校验响应；UART1 校验 Modbus RTU 从站。
 // 运行：iverilog -g2012 -I rtl -o tb.vvp sim/tb_fe_top.sv rtl/fe_top.v rtl/*.v && vvp tb.vvp

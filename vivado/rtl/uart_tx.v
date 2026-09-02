@@ -1,3 +1,4 @@
+// FasterEdge 开源项目 - Github: https://github.com/FasterEdge - Gitee: https://gitee.com/FasterEdge
 `timescale 1ns/1ps
 // uart_tx.v — UART 8N1 发送（起始位 + 8 数据位 LSB 先行 + 停止位）
 module uart_tx #(

@@ -1,3 +1,4 @@
+// FasterEdge 开源项目 - Github: https://github.com/FasterEdge - Gitee: https://gitee.com/FasterEdge
 `timescale 1ns/1ps
 // fe_ability_role.v — RoleAbility：describe / set_role / get_role
 module fe_ability_role(

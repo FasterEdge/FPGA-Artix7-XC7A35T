@@ -1,3 +1,4 @@
+// FasterEdge 开源项目 - Github: https://github.com/FasterEdge - Gitee: https://gitee.com/FasterEdge
 `timescale 1ns/1ps
 // fe_ability_time.v — TimeAbility：sync_manual / sync_system / get_time /
 //                      sync_ntp / configure_run

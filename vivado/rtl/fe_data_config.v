@@ -1,3 +1,4 @@
+// FasterEdge 开源项目 - Github: https://github.com/FasterEdge - Gitee: https://gitee.com/FasterEdge
 `timescale 1ns/1ps
 // fe_data_config.v — ConfigData：扁平点号路径 KV 配置（get/set/delete/list/snapshot）
 // 8 个槽位：key 16B（'.'/'/' 归一为 '_'，同 MCU norm_key）+ value 32B。
