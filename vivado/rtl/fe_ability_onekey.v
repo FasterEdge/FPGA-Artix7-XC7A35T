@@ -120,6 +120,7 @@ module fe_ability_onekey #(
     reg [5:0]    parse_i;
     reg [1:0]    parse_ph;       // 0=seq 1=token 2=subject
     reg [31:0]   vseq;
+    reg          vseq_bad;       // verify seq 解析非法/溢出标记
     reg [7:0]    vt [0:42];
     reg [6:0]    vlen;
     reg          vcolon2;
@@ -190,7 +191,7 @@ module fe_ability_onekey #(
             seq <= 0; b2d_start <= 0; hmac_start <= 0; hmac_len <= 0; hmac_msg <= 0;
             b64_cnt <= 0; subj <= 0; subj_len <= 0; numbuf <= 0;
             resp_l <= 0; resp_len <= 0; parse_i <= 0; parse_ph <= 0;
-            vseq <= 0; vlen <= 0; vcolon2 <= 0; cmp_ok <= 0;
+            vseq <= 0; vseq_bad <= 0; vlen <= 0; vcolon2 <= 0; cmp_ok <= 0;
             st_status <= 0; st_issue <= 0; st_verify <= 0;
             state <= S_IDLE;
             for (j = 0; j < 43; j = j + 1) begin
@@ -263,7 +264,17 @@ module fe_ability_onekey #(
                             parse_ph <= 2'd1;
                         end else if (args[parse_i*8 +: 8] >= 8'h30 &&
                                      args[parse_i*8 +: 8] <= 8'h39) begin
-                            vseq <= vseq * 10 + args[parse_i*8 +: 8] - 8'h30;
+                            // 32 位溢出检测: 4294967295 = 2^32-1,
+                            // 累加前 vseq > 429496729 或 (==429496729 且 digit>5) 必然回绕
+                            if (vseq > 32'd429496729 ||
+                                (vseq == 32'd429496729 && args[parse_i*8 +: 8] > 8'h35)) begin
+                                vseq_bad <= 1'b1;
+                            end else begin
+                                vseq <= vseq * 10 + args[parse_i*8 +: 8] - 8'h30;
+                            end
+                        end else begin
+                            // seq 段出现非数字且非冒号 → 格式非法
+                            vseq_bad <= 1'b1;
                         end
                         parse_i <= parse_i + 1;
                     end else if (parse_ph == 2'd1) begin
@@ -283,13 +294,21 @@ module fe_ability_onekey #(
                     end
                 end
                 S_MSG: begin
-                    // verify 无第二冒号 → subject 默认 "default"（同 MCU 版）
-                    if (st_verify && !vcolon2 && subj_len == 0) begin
-                        subj <= "tluafed"; subj_len <= 7;  // "default" LSB-first（右对齐字面量反转）
+                    // seq 段格式非法/溢出 → 直接拒绝, 不进入 HMAC
+                    if (st_verify && vseq_bad) begin
+                        s0 <= "bad format, expect seq:token"; l0 <= 26;
+                        ns <= 2'd1;
+                        resp_start <= 1'b1; resp_ok <= 1'b0;
+                        state <= S_IDLE;
+                    end else begin
+                        // verify 无第二冒号 → subject 默认 "default"（同 MCU 版）
+                        if (st_verify && !vcolon2 && subj_len == 0) begin
+                            subj <= "tluafed"; subj_len <= 7;  // "default" LSB-first（右对齐字面量反转）
+                        end
+                        b2d_val   <= st_verify ? vseq : seq;
+                        b2d_start <= 1'b1;
+                        state     <= S_B2D;
                     end
-                    b2d_val   <= st_verify ? vseq : seq;
-                    b2d_start <= 1'b1;
-                    state     <= S_B2D;
                 end
                 S_B2D: begin
                     if (b2d_done) begin
