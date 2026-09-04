@@ -116,10 +116,26 @@ module fe_ability_time #(
                     // 最多 10 位数字；遇 0/非数字结束
                     if (parse_i < 10 && args[parse_i*8 +: 8] >= 8'h30 &&
                         args[parse_i*8 +: 8] <= 8'h39) begin
-                        parse_v <= parse_v * 10 + args[parse_i*8 +: 8] - 8'h30;
-                        parse_i <= parse_i + 1;
+                        // 32 位溢出检测: 4294967295 = 2^32-1,
+                        // 累加前 parse_v > 429496729 或 (==429496729 且 digit>5) 必然回绕
+                        if (parse_bad) begin
+                            parse_i <= parse_i + 1;
+                        end else if (parse_v > 32'd429496729 ||
+                                   (parse_v == 32'd429496729 && args[parse_i*8 +: 8] > 8'h35)) begin
+                            parse_bad <= 1'b1;
+                            parse_i   <= parse_i + 1;
+                        end else begin
+                            parse_v <= parse_v * 10 + args[parse_i*8 +: 8] - 8'h30;
+                            parse_i <= parse_i + 1;
+                        end
                     end else begin
-                        if (parse_v == 0 && parse_i == 0) begin
+                        if (parse_bad) begin
+                            pend_ok <= 1'b0;
+                            s0 <= "invalid epoch"; l0 <= 13;
+                            ns <= 2'd1;
+                            resp_start <= 1'b1; resp_ok <= 1'b0;
+                            state <= S_IDLE;
+                        end else if (parse_v == 0 && parse_i == 0) begin
                             pend_ok <= 1'b0;
                             s0 <= "invalid epoch"; l0 <= 13;
                             ns <= 2'd1;
