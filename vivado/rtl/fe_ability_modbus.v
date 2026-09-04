@@ -360,19 +360,24 @@ module fe_ability_modbus #(
                     exec_k <= 0;
                     case (fbuf[1*8 +: 8])
                         8'h03, 8'h04: begin
-                            if (ra + rc > 64 || rc == 0) begin
+                            // ra+rc>64 用 16 位加法可被 ra≈0xFFFF 溢出回绕绕过;
+                            // 先 ra>64 / rc>32 拒绝, 再比 ra+rc (此时无溢出可能)。
+                            // 读计数强制 ≤32 (与注释一致): rc=63 时响应 131B 会
+                            // 超出 respf 128B 容量写 X。
+                            if (ra > 64 || rc > 32 || rc == 0 || ra + rc > 64) begin
                                 respf[1*8 +: 8] <= fbuf[1*8 +: 8] | 8'h80;
                                 respf[2*8 +: 8] <= 8'h02;
                                 rflen <= 3;
                                 mstate <= M_CRC;
                             end else begin
-                                respf[2*8 +: 8] <= {5'b0, rc[4:0], 1'b0}; // cnt*2 ≤ 64
+                                // 字节计数 = rc*2; rc≤32 保证 ≤64 且 8 位字段无截断
+                                respf[2*8 +: 8] <= {7'b0, rc[6:0], 1'b0};
                                 rflen <= 3;
                                 mstate <= M_EXECW;
                             end
                         end
                         8'h01, 8'h02: begin
-                            if (ra + rc > 64 || rc == 0) begin
+                            if (ra > 64 || rc > 64 || rc == 0 || ra + rc > 64) begin
                                 respf[1*8 +: 8] <= fbuf[1*8 +: 8] | 8'h80;
                                 respf[2*8 +: 8] <= 8'h02;
                                 rflen <= 3;
