@@ -1,0 +1,30 @@
+# FasterEdge 开源项目 - Github: https://github.com/FasterEdge - Gitee: https://gitee.com/FasterEdge
+# FPGA RTL CI: iverilog 整体编译 RTL + 仿真 testbench 编译。
+name: 'RTL 检查(iverilog)'
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  iverilog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: '安装 iverilog'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq iverilog
+      - name: 'RTL 整体编译检查'
+        working-directory: vivado
+        run: iverilog -I rtl -t null -g2012 rtl/*.v
+      - name: '仿真 testbench 编译'
+        working-directory: vivado
+        run: |
+          set -e
+          for tb in sim/tb_fe_ability_modbus.v sim/tb_fe_ability_time.v sim/tb_fe_bin2dec.v sim/tb_fe_hmac.v; do
+            iverilog -I rtl -g2012 -o /tmp/tb.out rtl/*.v "$tb"
+            echo "  $tb OK"
+          done
