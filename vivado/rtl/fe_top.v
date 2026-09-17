@@ -7,7 +7,12 @@
 // fe_top.v — FasterEdge FPGA 顶层（Basys3 / XC7A35T）
 // 100MHz 时钟直入，UART0 = 命令行控制台（板载 USB-UART），
 // UART1 = Modbus RTU 从站（Pmod JB），LED 显示状态。
-module fe_top (
+module fe_top #(
+    // OneKey HMAC 密钥(32B, LSB 在前)。生产部署必须显式指定非零值,
+    // 否则 onekey 会退回源码内置的默认密钥(公开于开源仓库), 所有设备
+    // secret 相同, 攻击者可离线伪造任意设备的鉴权 token。
+    parameter [255:0] SECRET = 256'h0
+) (
     input  wire       clk100,        // 100MHz（Basys3: E3）
     input  wire       btn_rst,       // 复位（低有效，接 Basys3 CPU_RESETN C12，按下为低）
     input  wire       uart0_rx,      // 控制台 RX（Basys3: B18）
@@ -110,7 +115,7 @@ module fe_top (
         .resp_start(time_rs), .resp_ok(time_ok), .resp_valid(time_v),
         .resp_data(time_d), .resp_ready(time_r), .resp_done(time_dn));
 
-    fe_ability_onekey onekey0(
+    fe_ability_onekey #(.SECRET(SECRET)) onekey0(
         .clk(clk100), .rst(rst), .start(atom_onekey_start),
         .act(atom_act), .args(atom_args),
         .resp_start(onekey_rs), .resp_ok(onekey_ok), .resp_valid(onekey_v),

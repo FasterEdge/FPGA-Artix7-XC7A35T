@@ -33,7 +33,9 @@ module fe_ability_onekey #(
         end
     endfunction
 
-    // 未指定 SECRET 时使用内置默认密钥（与 tb/README 中的向量一致）
+    // 未指定 SECRET(0)时退回内置默认密钥: 仅用于 tb 仿真与开箱自检向量。
+    // 生产综合必须经 fe_top.SECRET 显式指定非零密钥, 否则所有设备共享
+    // 源码公开的默认密钥, 攻击者可离线伪造任意设备的鉴权 token。
     localparam [255:0] SECRET_Q = (SECRET == 256'h0) ?
         rev256("FasterEdge-Artix7-Secret-Key-32B") : SECRET;
 
