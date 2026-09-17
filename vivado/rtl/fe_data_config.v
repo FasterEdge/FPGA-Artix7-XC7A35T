@@ -148,7 +148,7 @@ module fe_data_config(
                         end else if (is_set) begin
                             if (!has_eq) begin
                                 resp_ok <= 1'b0;
-                                s0 <= "bad format, expect key=value"; l0 <= 27; ns <= 2'd1;
+                                s0 <= "bad format, expect key=value"; l0 <= 28; ns <= 2'd1;
                                 resp_start <= 1'b1;
                             end else begin
                                 state <= S_WR;   // 写完后才启动响应

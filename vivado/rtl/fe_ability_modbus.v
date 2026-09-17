@@ -65,6 +65,7 @@ module fe_ability_modbus #(
     reg [31:0] pa, pv;
     reg [5:0]  pi;
     reg [1:0]  pph;
+    reg        pbad;   // 参数解析 32 位溢出标记
 
     reg [5:0]  rcnt;
     reg        do_read;
@@ -163,10 +164,10 @@ module fe_ability_modbus #(
                 S_IDLE: begin
                     if (start) begin
                         do_read <= 1'b0;
-                        pa <= 0; pv <= 0; pi <= 0; pph <= 0;
+                        pa <= 0; pv <= 0; pi <= 0; pph <= 0; pbad <= 1'b0;
                         if (is_getuid) begin
                             resp_ok <= 1'b1;
-                            s0 <= {"unit_id=", 3'b0, dec16(unit_id)}; l0 <= 12;
+                            s0 <= {"unit_id=", dec16(unit_id)}; l0 <= 13;
                             ns <= 2'd1;
                             resp_start <= 1'b1;
                         end else if (is_setuid || is_rhold || is_rinput ||
@@ -189,28 +190,48 @@ module fe_ability_modbus #(
                         pph <= 2'd1; pi <= pi + 1;
                     end else if (args[pi*8 +: 8] >= 8'h30 &&
                                  args[pi*8 +: 8] <= 8'h39) begin
-                        if (pph == 2'd0) pa <= pa * 10 + args[pi*8 +: 8] - 8'h30;
-                        else             pv <= pv * 10 + args[pi*8 +: 8] - 8'h30;
-                        pi <= pi + 1;
+                        // 32 位溢出检测: 累加前 v > 429496729 或 (==429496729 且 digit>5) 必然回绕,
+                        // 回绕会把超大地址/计数静默映射到合法范围, 绕过 pa>=64 / pa+pv>64 检查。
+                        if (pbad) begin
+                            pi <= pi + 1;
+                        end else if (pph == 2'd0) begin
+                            if (pa > 32'd429496729 ||
+                                (pa == 32'd429496729 && args[pi*8 +: 8] > 8'h35)) begin
+                                pbad <= 1'b1; pi <= pi + 1;
+                            end else begin
+                                pa <= pa * 10 + args[pi*8 +: 8] - 8'h30; pi <= pi + 1;
+                            end
+                        end else begin
+                            if (pv > 32'd429496729 ||
+                                (pv == 32'd429496729 && args[pi*8 +: 8] > 8'h35)) begin
+                                pbad <= 1'b1; pi <= pi + 1;
+                            end else begin
+                                pv <= pv * 10 + args[pi*8 +: 8] - 8'h30; pi <= pi + 1;
+                            end
+                        end
                     end else begin
                         pi <= pi + 1;
                     end
                 end
                 S_EMIT: begin
                     resp_start <= 1'b1;
-                    if (is_setuid) begin
+                    if (pbad) begin
+                        // 地址/计数解析 32 位回绕 → 拒绝(避免超大地址静默映射到合法寄存器)
+                        resp_ok <= 1'b0;
+                        s0 <= "invalid argument"; l0 <= 16; ns <= 2'd1;
+                    end else if (is_setuid) begin
                         if (pa == 0 || pa > 247) begin
                             resp_ok <= 1'b0;
-                            s0 <= "invalid unit id"; l0 <= 14; ns <= 2'd1;
+                            s0 <= "invalid unit id"; l0 <= 15; ns <= 2'd1;
                         end else begin
                             unit_id <= pa[7:0];
                             resp_ok <= 1'b1;
-                            s0 <= {"unit_id=", 3'b0, dec16(pa[15:0])}; l0 <= 12; ns <= 2'd1;
+                            s0 <= {"unit_id=", dec16(pa[15:0])}; l0 <= 13; ns <= 2'd1;
                         end
                     end else if (do_read) begin
                         if (pa + pv > 64) begin
                             resp_ok <= 1'b0;
-                            s0 <= "addr out of range"; l0 <= 16; ns <= 2'd1;
+                            s0 <= "addr out of range"; l0 <= 17; ns <= 2'd1;
                         end else if (pv > 8) begin
                             resp_ok <= 1'b0;
                             s0 <= "count too large"; l0 <= 15; ns <= 2'd1;
@@ -221,7 +242,7 @@ module fe_ability_modbus #(
                     end else if (is_whold) begin
                         if (pa >= 64) begin
                             resp_ok <= 1'b0;
-                            s0 <= "addr out of range"; l0 <= 16; ns <= 2'd1;
+                            s0 <= "addr out of range"; l0 <= 17; ns <= 2'd1;
                         end else begin
                             holding[pa[5:0]] <= pv[15:0];
                             resp_ok <= 1'b1;
@@ -230,7 +251,7 @@ module fe_ability_modbus #(
                     end else if (is_wcoil) begin
                         if (pa >= 64) begin
                             resp_ok <= 1'b0;
-                            s0 <= "addr out of range"; l0 <= 16; ns <= 2'd1;
+                            s0 <= "addr out of range"; l0 <= 17; ns <= 2'd1;
                         end else begin
                             coils[pa[5:0]] <= (pv != 0);
                             resp_ok <= 1'b1;
@@ -286,6 +307,9 @@ module fe_ability_modbus #(
     reg [7:0]   rbyte;
     reg [2:0]   bitk;
     reg [15:0]  m_crc;
+    // mb_rx 两拍同步(CDC): 数据通路 uart_rx 内部已同步, 但此处 M_RX 帧间隙
+    // 计数直接采样裸引脚会引入亚稳态; 打两拍后再用于 gapcnt 判断。
+    (* ASYNC_REG = "TRUE" *) reg [1:0] mb_rx_sync;
 
     // RTU 位打包（组合）：第 exec_k 字节的 8 个位（LSB 在前）
     reg [7:0] packbits;
@@ -301,6 +325,12 @@ module fe_ability_modbus #(
     end
 
     wire [15:0] req_crc = crc16(fbuf, fidx - 2);
+
+    // mb_rx 两拍同步
+    always @(posedge clk) begin
+        if (rst) mb_rx_sync <= 2'b11;
+        else     mb_rx_sync <= {mb_rx_sync[0], mb_rx};
+    end
 
     always @(posedge clk) begin
         if (rst) begin
@@ -330,10 +360,10 @@ module fe_ability_modbus #(
                         end
                         gapcnt <= 0;
                     end else begin
-                        // 用原始 RX 线测空闲：低电平=有活动立即清零，
+                        // 用同步后的 RX 线测空闲：低电平=有活动立即清零，
                         // 高电平持续 T35（≈3.5 字符）才判帧结束。
                         // 不能按 valid 脉冲计——字节间 valid 间隔≈10 位，会误判。
-                        if (!mb_rx) gapcnt <= 0;
+                        if (!mb_rx_sync[1]) gapcnt <= 0;
                         else begin
                             gapcnt <= gapcnt + 1;
                             if (gapcnt >= T35 - 1) mstate <= M_CHK;

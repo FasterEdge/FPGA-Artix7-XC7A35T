@@ -14,7 +14,7 @@ localparam [255:0] T_CONFIG       = "data_ConfigData";
 // 名称列表（供 list_ability_names / list_data_names / help 使用）
 // 注意：修改上方注册表时同步修改这两行
 localparam integer LIST_AB_LEN = 63;
-localparam [8*61-1:0] LIST_ABILITIES =
+localparam [8*63-1:0] LIST_ABILITIES =
     "BaseAbility,RoleAbility,TimeAbility,OneKeyAbility,ModbusAbility";
 localparam integer LIST_DATA_LEN = 19;
 localparam [8*19-1:0] LIST_DATAS = "BaseData,ConfigData";

@@ -89,7 +89,7 @@ module fe_ability_role(
                         resp_start <= 1'b1;
                         if (is_describe) begin
                             resp_ok <= 1'b1;
-                            s0 <= "{\"name\":\"RoleAbility\",\"role\":\""; l0 <= 31;
+                            s0 <= "{\"name\":\"RoleAbility\",\"role\":\""; l0 <= 30;
                             s1 <= {384'h0, role}; l1 <= role_len;
                             s2 <= "\"}"; l2 <= 2;
                             ns <= 2'd3; state <= 3'd0;

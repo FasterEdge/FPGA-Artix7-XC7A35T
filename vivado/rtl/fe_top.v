@@ -9,20 +9,20 @@
 // UART1 = Modbus RTU 从站（Pmod JB），LED 显示状态。
 module fe_top (
     input  wire       clk100,        // 100MHz（Basys3: E3）
-    input  wire       btn_rst,       // 复位（高有效；CPU_RESETN 低有效板卡请在外部取反）
+    input  wire       btn_rst,       // 复位（低有效，接 Basys3 CPU_RESETN C12，按下为低）
     input  wire       uart0_rx,      // 控制台 RX（Basys3: B18）
     output wire       uart0_tx,      // 控制台 TX（Basys3: A18）
     input  wire       uart1_rx,      // Modbus RTU RX（Pmod JB）
     output wire       uart1_tx,      // Modbus RTU TX（Pmod JB）
     output wire [3:0] led            // [0]=命令处理中 [1]=收发活动 [2]=心跳 [3]=保留
 );
-    // 复位同步（高有效，两拍）
+    // 复位同步（低有效，两拍）: Basys3 CPU_RESETN 按下为低, 复位有效
     (* ASYNC_REG = "TRUE" *) reg [1:0] rst_sync = 2'b11;
     // Asynchronously assert reset, then synchronously release it.  This also
     // gives simulation and hardware a defined power-up reset state.
-    always @(posedge clk100 or posedge btn_rst) begin
-        if (btn_rst) rst_sync <= 2'b11;
-        else         rst_sync <= {rst_sync[0], 1'b0};
+    always @(posedge clk100 or negedge btn_rst) begin
+        if (~btn_rst) rst_sync <= 2'b11;
+        else          rst_sync <= {rst_sync[0], 1'b0};
     end
     wire rst = rst_sync[1];
 

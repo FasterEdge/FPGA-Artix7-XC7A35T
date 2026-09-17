@@ -26,7 +26,8 @@ module fe_resp(
     reg [1023:0] cur_dat;
     reg       running;
 
-    wire [7:0] out_byte = cur_dat[(cur_len-1-idx)*8 +: 8];
+    // cur_len=0 时 (cur_len-1-idx) 为负下标导致越界取字节; 置 0 并跳过该空段。
+    wire [7:0] out_byte = (cur_len == 0) ? 8'h00 : cur_dat[(cur_len-1-idx)*8 +: 8];
 
     always @(posedge clk) begin
         if (rst) begin
@@ -47,7 +48,7 @@ module fe_resp(
                 resp_valid <= 1'b1;
                 resp_data  <= out_byte;
                 if (resp_ready) begin
-                    if (idx + 1 >= cur_len) begin
+                    if (cur_len == 0 || idx + 1 >= cur_len) begin
                         if (seg + 1 >= nsegs) begin
                             // 最后一个字节保持 valid=1，等消费方取走；
                             // 下一拍 !running 分支会把 valid 拉低。

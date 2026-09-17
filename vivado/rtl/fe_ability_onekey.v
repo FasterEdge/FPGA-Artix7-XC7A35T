@@ -233,14 +233,14 @@ module fe_ability_onekey #(
                             state   <= S_PARSE;
                         end else if (is_revoke) begin
                             seq <= 0;
-                            s0 <= "{\"revoked\":true}"; l0 <= 17; ns <= 2'd1;
+                            s0 <= "{\"revoked\":true}"; l0 <= 16; ns <= 2'd1;
                             resp_start <= 1'b1; resp_ok <= 1'b1;
                         end else if (is_list) begin
-                            s0 <= "{\"tokens\":[]}"; l0 <= 14; ns <= 2'd1;
+                            s0 <= "{\"tokens\":[]}"; l0 <= 13; ns <= 2'd1;
                             resp_start <= 1'b1; resp_ok <= 1'b1;
                         end else if (is_rotate) begin
                             seq <= 0;
-                            s0 <= "{\"rotated\":true}"; l0 <= 17; ns <= 2'd1;
+                            s0 <= "{\"rotated\":true}"; l0 <= 16; ns <= 2'd1;
                             resp_start <= 1'b1; resp_ok <= 1'b1;
                         end else begin
                             s0 <= "unsupported command"; l0 <= 19; ns <= 2'd1;
@@ -252,7 +252,7 @@ module fe_ability_onekey #(
                     // "seq:token[:subject]" 逐字符（1 字节/周期）
                     if (parse_i >= 64 || args[parse_i*8 +: 8] == 8'h00) begin
                         if (parse_ph == 2'd0) begin
-                            s0 <= "bad format, expect seq:token"; l0 <= 26;
+                            s0 <= "bad format, expect seq:token"; l0 <= 28;
                             ns <= 2'd1;
                             resp_start <= 1'b1; resp_ok <= 1'b0;
                             state <= S_IDLE;
@@ -296,7 +296,7 @@ module fe_ability_onekey #(
                 S_MSG: begin
                     // seq 段格式非法/溢出 → 直接拒绝, 不进入 HMAC
                     if (st_verify && vseq_bad) begin
-                        s0 <= "bad format, expect seq:token"; l0 <= 26;
+                        s0 <= "bad format, expect seq:token"; l0 <= 28;
                         ns <= 2'd1;
                         resp_start <= 1'b1; resp_ok <= 1'b0;
                         state <= S_IDLE;

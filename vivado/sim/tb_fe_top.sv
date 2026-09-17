@@ -204,9 +204,9 @@ module tb_fe_top;
 
     initial begin
         errors = 0;
-        btn_rst = 1;
+        btn_rst = 0;   // 低有效复位: 0=复位(C12=CPU_RESETN 按下为低)
         repeat (10) @(posedge clk);
-        btn_rst = 0;
+        btn_rst = 1;   // 解除复位
 
         // 1) 吸收 banner（两行）
         recv_line;
