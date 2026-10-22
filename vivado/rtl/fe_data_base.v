@@ -35,7 +35,7 @@ module fe_data_base(
                     ns <= 2'd1;
                 end else if (act == "info") begin
                     resp_ok <= 1'b1;
-                    s0 <= "{\"name\":\"BaseData\",\"firmware\":\"FasterEdge-FPGA 1.0.20260831\",\"chip\":\"XC7A35T\",\"sdk\":\"Vivado RTL\"}"; l0 <= 97;
+                    s0 <= "{\"name\":\"BaseData\",\"firmware\":\"FasterEdge-FPGA 1.0.20261022\",\"chip\":\"XC7A35T\",\"sdk\":\"Vivado RTL\"}"; l0 <= 97;
                     ns <= 2'd1;
                 end else begin
                     resp_ok <= 1'b0;
